@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 from matplotlib.pyplot import imshow
+import imageio
 import numpy as np
 import math
 
@@ -25,11 +26,14 @@ def task2(im, method, threshold, max_inten=255):
     plt.imshow(gray, cmap='gray')
 
 
-def apply_threshold(im, threshold, max_inten=255):
+def apply_threshold(im, threshold = 128):
     idx = im > threshold
-    im[idx] = max_inten
+    im[idx] = 255
     im[np.logical_not(idx)] = 0
     return im
+
+def random_dithering(im):
+    return apply_threshold(np.random.randint(0, 255, size=im.shape[:2]))
 
 
 def ordered_threshold(size):
@@ -41,6 +45,11 @@ def ordered_threshold(size):
         top = np.hstack((4*ordered_threshold(size), 4*ordered_threshold(size)+ 2*U_n))
         bottom = np.hstack((4*ordered_threshold(size) + 3*U_n,  4*ordered_threshold(size) + U_n))
         return np.vstack([top, bottom])
+
+
+def ordered_dithering(im, box_size=16):
+    size = np.round(np.array(im.shape)/box_size).astype(int)
+    return apply_threshold(im, threshold=np.tile(ordered_threshold(box_size), size)[: im.shape[0], : im.shape[1]])
 
 
 def forward_raw_process(im, threshold, raw, errors, max_inten):
@@ -135,3 +144,28 @@ def FS2_method(im, threshold=128, max_inten=255):
                                        max_inten)
     
     return img
+
+
+CHOICES = {
+    'to_grayscale': convert_to_grayscale,
+    'thresholding': apply_threshold,
+    'random_dithering': random_dithering,
+    'ordered_dithering': ordered_dithering,
+    'error_diffusion': error1_method,
+    'bidirectional_error_diffusion': error2_method,
+    'floyd_steinberg': FS1_method,
+    'bidirectional_floyd_steinberg': FS2_method
+}
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('mode', choices=list(CHOICES), help='a dithering mode.')
+    parser.add_argument('input', help='path to the input image.')
+    parser.add_argument('output', help='path to the output image.')
+    args = parser.parse_args()
+
+    image = imageio.imread(args.input)
+    imageio.imsave(args.output, CHOICES[args.mode](image).astype('uint8'))

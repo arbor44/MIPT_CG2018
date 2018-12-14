@@ -72,7 +72,7 @@ def encode(input_file):
     
     encoded_file, root.data = translate_to_haffman(input_file, codes)
     
-    return encoded_file, root
+    return (encoded_file, root)
 
 
 def decode(encoded_file, root):
